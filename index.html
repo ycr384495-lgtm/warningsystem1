@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>道路积水安全预警系统 · 动态安全速度</title>
+    <!-- 引入 Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ========== 科技蓝风格 (保持不变) ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', 'Segoe UI', 'Orbitron', sans-serif;
+        }
+
+        body {
+            background-color: #0a0e17;
+            color: #e6edf3;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(28, 58, 173, 0.15) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(56, 189, 248, 0.15) 0%, transparent 20%),
+                linear-gradient(to bottom, rgba(10, 14, 23, 0.9), rgba(10, 14, 23, 0.9)),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none"/><path d="M0,0 L100,100" stroke="rgba(88, 166, 255, 0.05)" stroke-width="0.5"/><path d="M0,100 L100,0" stroke="rgba(88, 166, 255, 0.05)" stroke-width="0.5"/><path d="M50,0 L50,100" stroke="rgba(88, 166, 255, 0.05)" stroke-width="0.5"/><path d="M0,50 L100,50" stroke="rgba(88, 166, 255, 0.05)" stroke-width="0.5"/></svg>');
+            position: relative;
+        }
+
+        .light-effect {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(88, 166, 255, 0.2) 0%, rgba(88, 166, 255, 0) 70%);
+            border-radius: 50%;
+            filter: blur(60px);
+            z-index: -2;
+            animation: moveLight 20s infinite alternate ease-in-out;
+        }
+        .light-effect:nth-child(1) {
+            top: -200px;
+            left: -200px;
+            animation-delay: 0s;
+        }
+        .light-effect:nth-child(2) {
+            bottom: -200px;
+            right: -200px;
+            animation-delay: 5s;
+            background: radial-gradient(circle, rgba(126, 231, 135, 0.15) 0%, rgba(126, 231, 135, 0) 70%);
+        }
+        @keyframes moveLight {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(100px, 100px); }
+        }
+
+        header {
+            grid-column: 1 / span 3;
+            background: rgba(13, 17, 23, 0.7);
+            border-radius: 20px;
+            padding: 20px 40px;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(88, 166, 255, 0.1),
+                inset 0 0 20px rgba(88, 166, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(126, 231, 135, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 20px 30px 20px;
+        }
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #1f6feb, #58a6ff, #7ee787, #1f6feb);
+            background-size: 200% 100%;
+            animation: shimmer 3s infinite linear;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #58a6ff, #7ee787);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 30px rgba(88, 166, 255, 0.5);
+            letter-spacing: 1px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            flex: 1;
+            gap: 20px;
+        }
+
+        .panel {
+            flex: 1;
+            background: rgba(22, 27, 34, 0.7);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(88, 166, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 15px 40px rgba(0, 0, 0, 0.5),
+                0 0 30px rgba(88, 166, 255, 0.2);
+        }
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(88, 166, 255, 0.5), transparent);
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #58a6ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-shadow: 0 0 10px rgba(88, 166, 255, 0.5);
+        }
+        .panel-title i {
+            font-size: 1.5rem;
+        }
+
+        /* 左侧速度显示 */
+        .speed-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .speed-number {
+            font-size: 5rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #58a6ff, #7ee787);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            line-height: 1;
+            text-shadow: 0 0 30px rgba(88, 166, 255, 0.5);
+            position: relative;
+            display: inline-block;
+        }
+        .speed-number::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 10%;
+            right: 10%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #58a6ff, #7ee787, transparent);
+            border-radius: 3px;
+        }
+        .speed-unit {
+            font-size: 1.5rem;
+            color: #8b949e;
+            margin-top: 5px;
+        }
+        .speed-label {
+            font-size: 1.2rem;
+            color: #c9d1d9;
+            margin-top: 10px;
+        }
+
+        .speed-status {
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 8px;
+            border: 1px solid;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        .status-safe {
+            background-color: rgba(46, 160, 67, 0.2);
+            color: #7ee787;
+            border-color: #238636;
+            text-shadow: 0 0 10px rgba(126, 231, 135, 0.5);
+        }
+        .status-warning {
+            background-color: rgba(187, 128, 9, 0.2);
+            color: #e3b341;
+            border-color: #bb8009;
+            text-shadow: 0 0 10px rgba(227, 179, 65, 0.5);
+        }
+        .status-danger {
+            background-color: rgba(248, 81, 73, 0.2);
+            color: #f85149;
+            border-color: #da3633;
+            text-shadow: 0 0 10px rgba(248, 81, 73, 0.5);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 12px 0;
+        }
+        button {
+            padding: 6px 12px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        button:hover::before {
+            left: 100%;
+        }
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #1f6feb 0%, #58a6ff 100%);
+            color: white;
+        }
+        .btn-secondary {
+            background: rgba(88, 166, 255, 0.15);
+            color: #58a6ff;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+        }
+        .btn-emergency {
+            background: rgba(248, 81, 73, 0.2);
+            color: #f85149;
+            border: 1px solid #f85149;
+            grid-column: span 2;
+        }
+        .btn-emergency:hover {
+            background: #f85149;
+            color: white;
+        }
+
+        .image-box {
+            height: 220px;
+            overflow: hidden;
+            border-radius: 15px;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            position: relative;
+            background: rgba(13, 17, 23, 0.5);
+            margin-top: 10px;
+        }
+        .image-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        .image-box:hover img {
+            transform: scale(1.05);
+        }
+        .image-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(13, 17, 23, 0.9);
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            color: #c9d1d9;
+            border-top: 1px solid rgba(88, 166, 255, 0.3);
+            backdrop-filter: blur(5px);
+        }
+
+        .status-box {
+            text-align: center;
+            padding: 20px;
+            border-radius: 16px;
+            border: 2px solid #7ee787;
+            background: rgba(46, 160, 67, 0.1);
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(126, 231, 135, 0.2);
+        }
+        .status-level {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .status-desc {
+            font-size: 1.1rem;
+            color: #c9d1d9;
+        }
+
+        .advice-box {
+            flex: 1;
+            background: rgba(22, 27, 34, 0.5);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            backdrop-filter: blur(5px);
+            border-left: 4px solid #58a6ff;
+        }
+        .advice-box ul {
+            list-style: none;
+            color: #d0eef5;
+            line-height: 2;
+            font-size: 1rem;
+        }
+        .advice-box li::before {
+            content: '⏣ ';
+            color: #58a6ff;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .threshold-info {
+            background: rgba(88, 166, 255, 0.07);
+            padding: 18px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            box-shadow: inset 0 0 20px rgba(88, 166, 255, 0.2);
+        }
+        .param-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            font-size: 1.05rem;
+            color: #b0d0d5;
+        }
+        .param-grid span {
+            color: #58a6ff;
+            font-weight: 500;
+            text-shadow: 0 0 5px #58a6ff;
+        }
+        /* 输入框样式 */
+        .param-grid input {
+            width: 80px;
+            background: rgba(0, 20, 40, 0.6);
+            border: 1px solid #58a6ff;
+            border-radius: 8px;
+            color: #7ee787;
+            font-weight: 600;
+            padding: 4px 8px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(88,166,255,0.3);
+            font-size: 1rem;
+        }
+        .param-grid input:focus {
+            outline: none;
+            border-color: #7ee787;
+            box-shadow: 0 0 15px #7ee787;
+        }
+
+        #emergency-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(180, 40, 40, 0.92);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            border: 4px solid #f85149;
+            box-shadow: 0 0 60px #f85149;
+        }
+        #emergency-overlay h1 {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            text-shadow: 0 0 25px #fff;
+            animation: softPulse 1.2s infinite;
+            color: #ffe0e0;
+        }
+        #emergency-overlay p {
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            color: #ffd0d0;
+        }
+        #emergency-overlay ul {
+            list-style: none;
+            font-size: 1.4rem;
+            color: #ffc0c0;
+            margin-bottom: 30px;
+        }
+        #emergency-overlay li::before {
+            content: '⚠ ';
+            color: #fff;
+        }
+        #emergency-overlay button {
+            font-size: 1.5rem;
+            padding: 15px 40px;
+            border: 3px solid #fff;
+            background: transparent;
+            color: #fff;
+            border-radius: 40px;
+            box-shadow: 0 0 25px rgba(255,255,255,0.5);
+        }
+        #emergency-overlay button:hover {
+            background: #fff;
+            color: #b42828;
+        }
+        @keyframes softPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+
+        .blink-orange {
+            animation: blinkSoftOrange 1.2s infinite;
+        }
+        @keyframes blinkSoftOrange {
+            0% { box-shadow: inset 0 0 20px #f0b050, 0 0 20px #f0b050; border-color: #e3b341; }
+            50% { box-shadow: inset 0 0 50px #f0b050, 0 0 40px #f0b050; border-color: #bb8009; }
+            100% { box-shadow: inset 0 0 20px #f0b050, 0 0 20px #f0b050; border-color: #e3b341; }
+        }
+    </style>
+</head>
+<body>
+    <div class="light-effect"></div>
+    <div class="light-effect"></div>
+
+    <header>
+        <h1><i class="fas fa-road"></i> 道路积水安全预警系统 <i class="fas fa-water"></i></h1>
+    </header>
+
+    <div class="container">
+        <!-- 左侧面板：车辆实时速度 + 坑槽积水演变模拟 (不变) -->
+        <div class="panel">
+            <div class="panel-title"><i class="fas fa-tachometer-alt"></i> 车辆实时速度</div>
+            <div class="speed-display">
+                <div class="speed-number" id="speed-display">60</div>
+                <div class="speed-unit">km/h</div>
+                <div class="speed-label">当前行驶速度</div>
+                <div class="speed-status status-safe" id="speed-status-tag">安全速度范围内</div>
+            </div>
+            <div class="controls">
+                <button class="btn-primary" onclick="changeSpeed(-5)"><i class="fas fa-minus"></i> 减速</button>
+                <button class="btn-primary" onclick="changeSpeed(5)"><i class="fas fa-plus"></i> 加速</button>
+                <button class="btn-emergency" onclick="emergencyBrake()"><i class="fas fa-exclamation-triangle"></i> 紧急制动</button>
+            </div>
+            <div class="panel-title" style="margin-top: 5px;"><i class="fas fa-water"></i> 坑槽积水演变模拟</div>
+            <div class="image-box">
+                <img src="image/pic1.png" alt="坑槽积水模拟分析" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100%\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23000\'/><text x=\'50%\' y=\'50%\' fill=\'%2358a6ff\' font-size=\'16\' text-anchor=\'middle\' dy=\'.3em\'>[ 2D 积水热力图 ]</text></svg>'">
+                <div class="image-label">MATLAB坑槽3D视图与积水水面模拟</div>
+            </div>
+        </div>
+
+        <!-- 中间面板：实时预警中枢 + 安全行车建议 (预警逻辑基于动态安全速度) -->
+        <div class="panel">
+            <div class="panel-title"><i class="fas fa-exclamation-triangle"></i> 实时预警中枢</div>
+            <div class="status-box" id="status-box">
+                <div class="status-level" id="status-level">安全行驶</div>
+                <div class="status-desc" id="status-desc">车速在安全范围内，系统正常运行中</div>
+            </div>
+            <div class="panel-title"><i class="fas fa-clipboard-list"></i> 安全行车建议</div>
+            <div class="advice-box">
+                <ul id="advice-list">
+                    <li>路面条件良好，请保持当前车距</li>
+                    <li>注意观察前方积水路况，平稳驾驶</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 右侧面板：最高安全速度 (动态计算，花纹深度/轮胎气压改为手动输入，位置已互换) -->
+        <div class="panel">
+            <div class="panel-title"><i class="fas fa-shield-alt"></i> 最高安全速度 </div>
+            <div class="threshold-info">
+                <div style="text-align: center; font-size: 1.1rem; color: #c9d1d9;">当前路况最高安全速度</div>
+                <div style="display: flex; align-items: baseline; justify-content: center; gap: 5px; margin: 10px 0;">
+                    <!-- 动态安全速度显示 -->
+                    <span class="speed-number" style="font-size: 4.5rem;" id="safe-speed-display">81</span>
+                    <span class="speed-unit" style="font-size: 1.5rem;">km/h</span>
+                </div>
+                <!-- 参数网格：顺序调整为积水深度、传递系数、特性系数、安全冗余、轮胎气压、花纹深度 -->
+                <div class="param-grid">
+                    <div>积水深度: <span>12.5 mm</span></div>
+                    <div>路面传递系数: <span>1.0</span></div>
+                    <div>路面特性系数: <span>1.0</span></div>
+                    <!-- 安全冗余 (原花纹深度位置) -->
+                    <div>安全冗余: <span>0.8</span></div>
+                    <!-- 轮胎气压 (保持不变) -->
+                    <div>轮胎气压: <input type="number" id="tire-pressure" value="220" min="100" max="400" step="5"> kPa</div>
+                    <!-- 花纹深度 (移到最后) -->
+                    <div>花纹深度: <input type="number" id="tread-depth" value="7.0" min="0" max="15" step="0.1"> mm</div>
+                </div>
+                <div style="font-size:0.8rem; color:#58a6ff; margin-top:8px; text-align:center;">* 修改花纹/气压值实时计算安全速度</div>
+            </div>
+            <div class="panel-title"><i class="fas fa-chart-area"></i> 坑槽地形三维分析</div>
+            <div class="image-box">
+                <img src="image/pic2.png" alt="坑槽地形三维分析" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100%\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23000\'/><text x=\'50%\' y=\'50%\' fill=\'%2358a6ff\' font-size=\'16\' text-anchor=\'middle\' dy=\'.3em\'>[ 3D 高程数据 ]</text></svg>'">
+                <div class="image-label">基于插值算法的坑槽地形三维重建</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全屏紧急覆盖层 -->
+    <div id="emergency-overlay">
+        <h1>极高风险！立即停车！</h1>
+        <p id="emergency-reason">车速严重超出安全界限，极易发生滑水失控风险！</p>
+        <ul>
+            <li>强烈建议寻找安全地点停车避险</li>
+            <li>立即开启车辆双闪警示灯</li>
+            <li>避免任何急转弯或急刹车操作</li>
+        </ul>
+        <button onclick="emergencyBrake()"><i class="fas fa-brake-warning"></i> 执行人工紧急制动 (降速至 0 km/h)</button>
+    </div>
+
+    <script>
+        (function() {
+            // --- 固定参数 (根据文档及界面设定，路面传递系数已调整为1.0) ---
+            const FIXED_H = 12.5;               // 积水深度 mm
+            const FIXED_K_TRANS = 1.0;           // 路面传递系数 (原0.8已改为1.0)
+            const FIXED_K_ROAD = 1.0;             // 路面特性修正系数
+            const FIXED_SF = 0.8;                  // 安全冗余系数
+            const P_STD = 220;                     // 标准胎压 kPa
+            const LEGAL_MAX = 120;                  // 法定限速 km/h
+
+            // --- 动态变量 ---
+            let currentSpeed = 60;                  // 当前车速 (km/h)
+            let currentSafeSpeed = 81;               // 当前计算出的安全速度 (初始值稍后更新)
+
+            // --- DOM 元素 ---
+            const speedDisplay = document.getElementById('speed-display');
+            const speedStatusTag = document.getElementById('speed-status-tag');
+            const statusBox = document.getElementById('status-box');
+            const statusLevel = document.getElementById('status-level');
+            const statusDesc = document.getElementById('status-desc');
+            const adviceList = document.getElementById('advice-list');
+            const emergencyOverlay = document.getElementById('emergency-overlay');
+            const emergencyReason = document.getElementById('emergency-reason');
+            const safeSpeedDisplay = document.getElementById('safe-speed-display');
+            const treadInput = document.getElementById('tread-depth');
+            const pressureInput = document.getElementById('tire-pressure');
+
+            // --- 音频上下文 (保持不变) ---
+            let audioCtx = null;
+            let warningInterval = null;
+
+            function initAudio() {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            function playBeep(frequency, duration) {
+                if (!audioCtx) return;
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.type = 'square';
+                oscillator.frequency.value = frequency;
+                gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + duration);
+            }
+
+            // --- 根据花纹深度查表 (文档表1) ---
+            function getTreadCoeff(t) {
+                if (t >= 7.0) return 1.00;
+                else if (t >= 6.0) return 0.90;
+                else if (t >= 5.0) return 0.80;
+                else if (t >= 4.0) return 0.70;
+                else if (t >= 3.0) return 0.60;
+                else if (t >= 2.0) return 0.50;
+                else if (t >= 1.6) return 0.40;
+                else return 0.30;
+            }
+
+            // --- 根据有效水膜厚度计算基础临界速度 (模型2分段) ---
+            function getBaseSpeed(heff) {
+                if (heff <= 5) {
+                    return 120;
+                } else if (heff <= 15) {
+                    return 120 - 4 * (heff - 5);
+                } else if (heff <= 30) {
+                    return 80 - 2 * (heff - 15);
+                } else {
+                    return Math.max(50 - (heff - 30), 30);
+                }
+            }
+
+            // --- 核心安全速度计算 (使用更新后的传递系数1.0) ---
+            function computeSafeSpeed() {
+                // 读取手动输入值
+                let tread = parseFloat(treadInput.value);
+                let pressure = parseFloat(pressureInput.value);
+                // 非数字保护
+                if (isNaN(tread) || tread < 0) tread = 7.0;
+                if (isNaN(pressure) || pressure < 50) pressure = 220;
+
+                // 1. 有效水膜厚度: K_TRANS = 1.0 (已修改)
+                const heff = FIXED_K_TRANS * FIXED_H;   // 1.0 * 12.5 = 12.5 mm
+
+                // 2. 基础速度 (12.5mm落入第二区间: 120-4*(12.5-5)=120-30=90km/h)
+                const V_base = getBaseSpeed(heff);       
+
+                // 3. 花纹修正系数
+                const k_tread = getTreadCoeff(tread);
+
+                // 4. 气压修正系数 (限制0.9~1.1)
+                let k_pressure = Math.sqrt(pressure / P_STD);
+                k_pressure = Math.min(1.1, Math.max(0.9, k_pressure));
+
+                // 5. 路面特性修正 (固定)
+                const k_road = FIXED_K_ROAD;              // 1.0
+
+                // 6. 安全冗余 (固定)
+                const SF = FIXED_SF;                       // 0.8
+
+                // 递进修正
+                const V_tread = V_base * k_tread;
+                const V_pressure = V_tread * k_pressure;
+                const V_road = V_pressure * k_road;
+                let V_safe_base = V_road * SF;
+
+                // 法定限速约束
+                let V_safe = Math.min(V_safe_base, LEGAL_MAX);
+                // 保留一位小数显示
+                return Math.round(V_safe * 10) / 10;
+            }
+
+            // --- 更新UI中的安全速度并刷新仪表盘 ---
+            function updateSafeSpeedAndUI() {
+                const newSafe = computeSafeSpeed();
+                currentSafeSpeed = newSafe;
+                safeSpeedDisplay.innerText = currentSafeSpeed;
+
+                // 重新评估预警状态 (基于新安全速度)
+                updateDashboard();
+            }
+
+            // --- 原有速度调整函数 (保持不变，但会触发updateDashboard) ---
+            function changeSpeed(delta) {
+                initAudio();
+                currentSpeed += delta;
+                if (currentSpeed < 0) currentSpeed = 0;
+                if (currentSpeed > 160) currentSpeed = 160;
+                speedDisplay.innerText = currentSpeed;
+                updateDashboard();      // 重新判断风险
+            }
+            // 暴露给全局
+            window.changeSpeed = changeSpeed;
+
+            function emergencyBrake() {
+                initAudio();
+                currentSpeed = 0;
+                speedDisplay.innerText = currentSpeed;
+                emergencyOverlay.style.display = 'none';
+                updateDashboard();
+            }
+            window.emergencyBrake = emergencyBrake;
+
+            // --- 核心仪表盘更新 (基于currentSpeed 和 currentSafeSpeed) ---
+            function updateDashboard() {
+                // 清除旧警告音
+                if (warningInterval) {
+                    clearInterval(warningInterval);
+                    warningInterval = null;
+                }
+
+                // 特殊优先级：若安全速度本身低于45 km/h (积水极深场景) -> 直接进入最高风险
+                if (currentSafeSpeed < 45) {
+                    // 强制极高风险状态 (类似原danger，但提示不同)
+                    speedDisplay.style.color = '#f85149';
+                    speedDisplay.style.textShadow = '0 0 20px #f85149';
+                    speedStatusTag.className = 'speed-status status-danger';
+                    speedStatusTag.innerText = '积水过深 建议停车';
+
+                    statusBox.style.borderColor = '#f85149';
+                    statusBox.style.background = 'rgba(248, 81, 73, 0.2)';
+                    statusBox.classList.remove('blink-orange');
+
+                    statusLevel.innerText = '极高风险！';
+                    statusLevel.style.color = '#f85149';
+                    statusDesc.innerText = `安全速度仅 ${currentSafeSpeed} km/h，低于安全阈值，强烈建议停车！`;
+
+                    adviceList.innerHTML = `
+                        <li style="color:#f85149">⚠ 路面积水过深，安全速度低于45km/h</li>
+                        <li>立即寻找安全地点停车避险</li>
+                        <li>开启双闪，避免涉水行驶</li>
+                    `;
+
+                    emergencyOverlay.style.display = 'flex';
+                    emergencyReason.innerText = `当前路况安全速度仅为 ${currentSafeSpeed} km/h，任何行驶都有极高滑水风险！`;
+
+                    // 急促报警音
+                    playBeep(1200, 0.1);
+                    warningInterval = setInterval(() => {
+                        playBeep(1200, 0.1);
+                        setTimeout(() => playBeep(1500, 0.1), 150);
+                    }, 500);
+
+                    return; // 直接返回，不再执行常规车速比较
+                }
+
+                // 常规车速比较 (安全速度 >=45)
+                if (currentSpeed <= currentSafeSpeed) {
+                    // 安全
+                    speedDisplay.style.color = '#7ee787';
+                    speedDisplay.style.textShadow = '0 0 20px #7ee787';
+                    speedStatusTag.className = 'speed-status status-safe';
+                    speedStatusTag.innerText = '安全速度范围内';
+
+                    statusBox.style.borderColor = '#7ee787';
+                    statusBox.style.background = 'rgba(46, 160, 67, 0.1)';
+                    statusBox.classList.remove('blink-orange');
+
+                    statusLevel.innerText = '安全行驶';
+                    statusLevel.style.color = '#7ee787';
+                    statusDesc.innerText = '车速在安全范围内，附着力状态良好';
+
+                    adviceList.innerHTML = `
+                        <li>路面条件可控，请保持安全车距</li>
+                        <li>注意观察前方积水路况，平稳驾驶</li>
+                        <li>开启雨刮器，保持视线清晰</li>
+                    `;
+                    emergencyOverlay.style.display = 'none';
+                }
+                else if (currentSpeed <= currentSafeSpeed + 15) {
+                    // 警告
+                    speedDisplay.style.color = '#e3b341';
+                    speedDisplay.style.textShadow = '0 0 20px #e3b341';
+                    speedStatusTag.className = 'speed-status status-warning';
+                    speedStatusTag.innerText = '接近安全阈值';
+
+                    statusBox.style.borderColor = '#e3b341';
+                    statusBox.style.background = 'rgba(187, 128, 9, 0.15)';
+                    statusBox.classList.add('blink-orange');
+
+                    statusLevel.innerText = '高风险超速！';
+                    statusLevel.style.color = '#e3b341';
+                    statusDesc.innerText = `车速超出安全限制 (限${currentSafeSpeed} km/h)，面临滑水风险，请立即减速！`;
+
+                    adviceList.innerHTML = `
+                        <li style="color:#e3b341">⚠ 警告：轮胎排水能力濒临饱和！</li>
+                        <li>立即松开油门，进行平缓减速</li>
+                        <li>保持方向盘稳定，切勿急刹车或急打方向</li>
+                    `;
+                    emergencyOverlay.style.display = 'none';
+
+                    playBeep(800, 0.3);
+                    warningInterval = setInterval(() => playBeep(800, 0.3), 1000);
+                }
+                else {
+                    // 危险 (严重超速)
+                    speedDisplay.style.color = '#f85149';
+                    speedDisplay.style.textShadow = '0 0 20px #f85149';
+                    speedStatusTag.className = 'speed-status status-danger';
+                    speedStatusTag.innerText = '超过安全阈值！';
+
+                    statusBox.style.borderColor = '#f85149';
+                    statusBox.style.background = 'rgba(248, 81, 73, 0.2)';
+                    statusBox.classList.remove('blink-orange');
+
+                    statusLevel.innerText = '极高风险！';
+                    statusLevel.style.color = '#f85149';
+                    statusDesc.innerText = `严重超速！随时可能发生致命滑水失控 (限${currentSafeSpeed} km/h)！`;
+
+                    adviceList.innerHTML = `
+                        <li style="color:#f85149">⚠ 极高风险：即将丧失全部抓地力！</li>
+                        <li>强制接管：建议立即执行紧急制动！</li>
+                        <li>开启双闪警示灯，预防后车追尾！</li>
+                    `;
+
+                    emergencyOverlay.style.display = 'flex';
+                    emergencyReason.innerText = `当前车速 ${currentSpeed} km/h，已严重超出 ${currentSafeSpeed} km/h 的物理安全界限！`;
+
+                    playBeep(1200, 0.1);
+                    warningInterval = setInterval(() => {
+                        playBeep(1200, 0.1);
+                        setTimeout(() => playBeep(1500, 0.1), 150);
+                    }, 500);
+                }
+            }
+
+            // --- 绑定输入事件: 当花纹深度或胎压改变时重新计算安全速度并更新UI ---
+            treadInput.addEventListener('input', function() {
+                updateSafeSpeedAndUI();
+            });
+            pressureInput.addEventListener('input', function() {
+                updateSafeSpeedAndUI();
+            });
+
+            // --- 初始化: 计算一次安全速度并显示，同时设置当前车速显示 ---
+            function initialize() {
+                // 确保输入值有效
+                treadInput.value = '7.0';
+                pressureInput.value = '220';
+                updateSafeSpeedAndUI();
+                speedDisplay.innerText = currentSpeed;
+            }
+            initialize();
+
+            // 将内部函数挂载到window以保证按钮调用 (changeSpeed/emergencyBrake已挂载)
+        })();
+    </script>
+</body>
+</html>
